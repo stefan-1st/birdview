@@ -23,7 +23,7 @@
 //
 ////////////////////////////////////////////////////////////////////////
 
-(function (root, factory) {
+((root, factory) => {
 	if (typeof define === 'function' && define.amd) {
 		define([], function () {
 			return factory(root);
@@ -33,14 +33,8 @@
 	} else {
 		root.birdview = factory(root);
 	}
-})(typeof global !== 'undefined' ? global : typeof window !== 'undefined' ? window : this, function (window) {
+})(typeof global !== 'undefined' ? global : typeof window !== 'undefined' ? window : this, window => {
 	'use strict';
-
-	////////////////////////////////////////////////////////////////////////
-	//
-	// Variables
-	//
-	////////////////////////////////////////////////////////////////////////
 
 	const birdview = {};
 	const html = document.documentElement;
@@ -64,22 +58,16 @@
 		count: 0
 	};
 
-	/*
-	*
-	* Keycodes that disable birdview. Most are scrolling related keys
-	* left: 37, up: 38, right: 39, down: 40, spacebar: 32, pageup: 33, pagedown: 34, end: 35, home: 36, esc: 27
-	*
-	*/
+	/**
+	 *
+	 * Keycodes that disable birdview. Most are scrolling related keys
+	 * left: 37, up: 38, right: 39, down: 40, spacebar: 32, pageup: 33, pagedown: 34, end: 35, home: 36, esc: 27
+	 *
+	 */
 	const scrolling_keys = {37: 1, 38: 1, 39: 1, 40: 1, 32: 1, 33: 1, 34: 1, 35: 1, 36: 1, 27: 1};
 
 	// For feature test
 	const supports = !!body.addEventListener; //Incomplete feature test
-
-	////////////////////////////////////////////////////////////////////////
-	//
-	// Default settings
-	//
-	////////////////////////////////////////////////////////////////////////
 
 	const defaults = {
 		shortcut: 90,
@@ -93,14 +81,63 @@
 		callback_start: null,
 		callback_end: null,
 		touch: true,
-		debug: false
+		debug: false,
+		text_h1: 'Birdview',
+		text_close: 'X',
+		text_home: 'Home',
+		text_title: document.title,
+		text_usage: 'Click to dive<br>Press Z or pinch to toggle birdview',
+		text_zooming: 'Zooming...'
 	};
 
-	////////////////////////////////////////////////////////////////////////
-	//
-	// DOM setup
-	//
-	////////////////////////////////////////////////////////////////////////
+	const wrapAll = (parent, wrapper_id) => {
+		let element = parent;
+		const wrapper = document.createElement('div');
+
+		wrapper.id = wrapper_id;
+
+		if (element !== body) {
+			element = document.getElementById(element);
+		}
+
+		while (element.firstChild) {
+			wrapper.appendChild(element.firstChild);
+		}
+
+		element.appendChild(wrapper);
+	};
+
+	const unwrap = wrapper => {
+		const element = document.getElementById(wrapper);
+		const parent = element.parentNode;
+
+		while (element.firstChild) {
+			parent.insertBefore(element.firstChild, element);
+		}
+
+		parent.removeChild(element);
+	};
+
+	const createButton = () => {
+		const birdview_button = document.createElement('button');
+		birdview_button.innerText = settings.button_text;
+		birdview_button.id = 'birdview_auto_generated_button';
+		birdview_button.classList.add('birdview_toggle');
+		child.appendChild(birdview_button);
+	};
+
+	const createOverlay = () => {
+		overlay = document.createElement('div');
+		overlay.id = 'birdview_auto_generated_overlay';
+
+		if (settings.speed === 0) {
+			overlay.style.transitionDuration = '0s';
+		} else {
+			overlay.style.transitionDuration = settings.overlay_transition + 's';
+		}
+
+		body.appendChild(overlay);
+	};
 
 	/*
 	*
@@ -113,8 +150,9 @@
 	*   </div>
 	*
 	*/
-	function setupDOM() {
+	const setupDOM = () => {
 		const focused = document.activeElement; // Get focused element before wrapping the document
+
 		wrapAll(body, 'birdview_parent');
 		wrapAll('birdview_parent', 'birdview_child');
 		parent = document.getElementById('birdview_parent');
@@ -128,115 +166,70 @@
 		if (settings.overlay) {
 			createOverlay();
 		}
-	}
+	};
 
-	function restoreDOM() {
+	const removeButton = () => {
+		const button = document.getElementById('birdview_auto_generated_button');
+
+		if (button) {
+			button.parentNode.removeChild(button);
+		}
+	};
+
+	const removeOverlay = () => {
+		const overlay = document.getElementById('birdview_auto_generated_overlay');
+
+		if (overlay) {
+			overlay.parentNode.removeChild(overlay);
+		}
+	};
+
+	const restoreDOM = () => {
 		unwrap('birdview_child');
 		unwrap('birdview_parent');
 		child = null;
 		parent = null;
 		removeButton();
 		removeOverlay();
-	}
+	};
 
-	function createButton() {
-		const birdview_button = document.createElement('button');
-		birdview_button.innerText = settings.button_text;
-		birdview_button.id = 'birdview_auto_generated_button';
-		birdview_button.classList.add('birdview_toggle');
-		child.appendChild(birdview_button);
-	}
-
-	function removeButton() {
-		const button = document.getElementById('birdview_auto_generated_button');
-
-		if (button) {
-			button.parentNode.removeChild(button);
-		}
-	}
-
-	function createOverlay() {
-		overlay = document.createElement('div');
-		overlay.id = 'birdview_auto_generated_overlay';
-
-		if (settings.speed === 0) {
-			overlay.style.transitionDuration = '0s';
-		} else {
-			overlay.style.transitionDuration = settings.overlay_transition + 's';
-		}
-
-		body.appendChild(overlay);
-	}
-
-	function removeOverlay() {
-		const overlay = document.getElementById('birdview_auto_generated_overlay');
-
-		if (overlay) {
-			overlay.parentNode.removeChild(overlay);
-		}
-	}
-
-	////////////////////////////////////////////////////////////////////////
-	//
-	// Measurements
-	//
-	////////////////////////////////////////////////////////////////////////
-
-	function updateMeasurements() {
+	const updateMeasurements = () => {
 		document_height = Math.max(body.scrollHeight, body.offsetHeight, html.clientHeight, html.scrollHeight, html.offsetHeight);
 		viewport_height = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
 		scale_value = viewport_height / document_height;
-	}
+	};
 
 	// Returns the Y transform origin according to scrolling position, viewport hight and document length
-	function birdviewTransformOriginY() {
-		return css_transform_origin_Y = ((window.pageYOffset + (viewport_height * 0.5)) / document_height) * 100;
-	}
+	const birdviewTransformOriginY = () => css_transform_origin_Y = ((window.pageYOffset + (viewport_height * 0.5)) / document_height) * 100;
 
 	// Given a value 'x' in [a, b], output a value 'y' in [c, d]
-	function linearTransform(x, a, b, c, d) {
-		return ((x - a) * (d - c)) / (b - a) + c;
-	}
+	const linearTransform = (x, a, b, c, d) => ((x - a) * (d - c)) / (b - a) + c;
 
-	function compensateScale() {
-		return (linearTransform(css_transform_origin_Y, 0, 100, -1, 1)) * viewport_height * 0.5;
-	}
+	const compensateScale = () => (linearTransform(css_transform_origin_Y, 0, 100, -1, 1)) * viewport_height * 0.5;
 
-	function diveTransformOrigin(click_Y_position) {
-		return css_transform_origin_Y = ((click_Y_position / viewport_height) * 100);
-	}
+	const diveTransformOrigin = click_Y_position => css_transform_origin_Y = ((click_Y_position / viewport_height) * 100);
 
-	function diveScrollPosition(click_Y_position) {
-		return ((click_Y_position / viewport_height) * document_height) - ((click_Y_position / viewport_height) * viewport_height);
-	}
+	const diveScrollPosition = click_Y_position => ((click_Y_position / viewport_height) * document_height) - ((click_Y_position / viewport_height) * viewport_height);
 
 	// This function works on Mobile Safari and Firefox Android. I didn't find a way to detect a zoom change on Chrome Android.
-	function getZoomLevel() {
-		return window.screen.width / window.innerWidth;
-	}
+	const getZoomLevel = () => window.screen.width / window.innerWidth;
 
-	function distanceBetween(a, b) {
+	const distanceBetween = (a, b) => {
 		const dx = a.x - b.x;
 		const dy = a.y - b.y;
 		return Math.sqrt(dx * dx + dy * dy);
-	}
+	};
 
-	////////////////////////////////////////////////////////////////////////
-	//
-	// CSS transformations
-	//
-	////////////////////////////////////////////////////////////////////////
-
-	function birdviewCSS() {
+	const birdviewCSS = () => {
 		updateMeasurements();
 		parent.style.transition = 'transform ' + settings.speed + 's ' + settings.easing;
 		child.style.transition = 'transform ' + settings.speed + 's ' + settings.easing;
 		child.style.transformOrigin = settings.origin_X + '% ' + birdviewTransformOriginY() + '%';
 		child.style.transform = 'scale(' + scale_value + ')';
 		parent.style.transform = 'translateY(' + compensateScale() + 'px)';
-	}
+	};
 
-	function pageFits() {
+	const pageFits = () => {
 		child.animate(
 			[
 				{transform: 'scale(1)'},
@@ -246,37 +239,105 @@
 				duration: 300,
 				easing: 'ease'
 			});
-	}
+	};
 
-	function diveCSS(click_Y_position) {
+	const diveCSS = click_Y_position => {
 		child.style.transformOrigin = settings.origin_X + '% ' + diveTransformOrigin(click_Y_position) + '%';
 		child.style.transform = 'scale(1)';
 		parent.style.transitionDuration = '0s';
 		parent.style.transform = 'translateY(0px)';
-	}
+	};
 
-	function removeBirdviewCSS() {
+	const removeBirdviewCSS = () => {
 		child.style.transformOrigin = settings.origin_X + '% ' + css_transform_origin_Y + '%';
 		child.style.transform = 'scale(1)';
 		parent.style.transform = 'translateY(0px)';
-	}
+	};
 
-	function removeTransforms() {
+	const removeTransforms = () => {
 		child.style.transform = '';
 		parent.style.transform = '';
-	}
+	};
 
-	////////////////////////////////////////////////////////////////////////
-	//
-	// Birdview methods
-	//
-	////////////////////////////////////////////////////////////////////////
+	const hideOverlay = () => {
+		if (overlay.classList.contains('show')) {
+			overlay.classList.remove('show');
+		}
 
-	birdview.toggle = function () {
-		!scaled ? enterBirdview() : exitBirdview();
-	}
+		while (overlay.firstChild){
+			overlay.removeChild(overlay.firstChild);
+		}
+	};
 
-	function enterBirdview() {
+	const showLoading = () => {
+		overlay.classList.add('show', 'zooming');
+
+		while (overlay.firstChild) {
+			overlay.removeChild(overlay.firstChild);
+		}
+
+		const h1 = document.createElement('h1');
+		h1.innerText = settings.text_zooming;
+		overlay.appendChild(h1);
+	};
+
+	const buildMenu = () => {
+		if (overlay.classList.contains('zooming')) {
+			overlay.classList.remove('zooming');
+		}
+
+		if (!overlay.classList.contains('show')) {
+			overlay.classList.add('show');
+		}
+
+		while (overlay.firstChild) {
+			overlay.removeChild(overlay.firstChild);
+		}
+
+		const h1 = document.createElement('h1');
+		h1.innerText = settings.text_h1;
+		overlay.appendChild(h1);
+
+		const button = document.createElement('button');
+		button.innerText = settings.text_close;
+		button.tabIndex = 1;
+		button.classList.add('birdview_toggle');
+		overlay.appendChild(button);
+
+		const link_1 = document.createElement('a');
+		link_1.href = '/';
+		link_1.innerText = settings.text_home;
+		link_1.tabIndex = 2;
+		overlay.appendChild(link_1);
+
+		if (location.pathname !== '/') {
+			overlay.innerHTML += '/';
+			const link_2 = document.createElement('a');
+			link_2.href = window.location.href;
+			link_2.innerText = settings.text_title;
+			link_2.tabIndex = 3;
+			overlay.appendChild(link_2);
+		}
+
+		const span = document.createElement('span');
+		span.innerHTML = settings.text_usage;
+		overlay.appendChild(span);
+	};
+
+	const toggleOverlay = () => {
+		if (!settings.overlay) {
+			return;
+		}
+
+		if (settings.speed === 0) {
+			scaled ? buildMenu() : hideOverlay();
+		} else {
+			// Handle overlay display with transitionend event
+			showLoading();
+		}
+	};
+
+	const enterBirdview = () => {
 		if (scaled) {
 			return;
 		}
@@ -300,9 +361,9 @@
 		if (settings.callback_start) {
 			settings.callback_start();
 		}
-	}
+	};
 
-	function exitBirdview() {
+	const exitBirdview = () => {
 		if (!scaled) {
 			return;
 		}
@@ -314,9 +375,13 @@
 		if (settings.callback_end) {
 			settings.callback_end();
 		}
+	};
+
+	birdview.toggle = () => {
+		!scaled ? enterBirdview() : exitBirdview();
 	}
 
-	function dive(click_Y_position) {
+	const dive = click_Y_position => {
 		if (!scaled) {
 			return;
 		}
@@ -329,99 +394,9 @@
 		if (settings.callback_end) {
 			settings.callback_end();
 		}
-	}
+	};
 
-	////////////////////////////////////////////////////////////////////////
-	//
-	// User interface
-	//
-	////////////////////////////////////////////////////////////////////////
-
-	function toggleOverlay() {
-		if (!settings.overlay) {
-			return;
-		}
-
-		if (settings.speed === 0) {
-			scaled ? buildMenu() : hideOverlay();
-		} else {
-			// Handle overlay display with transitionend event
-			showLoading();
-		}
-	}
-
-	function showLoading() {
-		overlay.classList.add('show', 'zooming');
-
-		while (overlay.firstChild) {
-			overlay.removeChild(overlay.firstChild);
-		}
-
-		const h1 = document.createElement('h1');
-		h1.innerText = 'Zooming...';
-		overlay.appendChild(h1);
-	}
-
-	function buildMenu() {
-		if (overlay.classList.contains('zooming')) {
-			overlay.classList.remove('zooming');
-		}
-
-		if (!overlay.classList.contains('show')) {
-			overlay.classList.add('show');
-		}
-
-		while (overlay.firstChild) {
-			overlay.removeChild(overlay.firstChild);
-		}
-
-		const h1 = document.createElement('h1');
-		h1.innerText = 'Birdview';
-		overlay.appendChild(h1);
-
-		const button = document.createElement('button');
-		button.innerText = 'X';
-		button.tabIndex = 1;
-		button.classList.add('birdview_toggle');
-		overlay.appendChild(button);
-
-		const link_1 = document.createElement('a');
-		link_1.href = '/';
-		link_1.innerText = 'Home';
-		link_1.tabIndex = 2;
-		overlay.appendChild(link_1);
-
-		if (location.pathname !== '/') {
-			overlay.innerHTML += '/';
-			const link_2 = document.createElement('a');
-			link_2.href = window.location.href;
-			link_2.innerText = document.title;
-			link_2.tabIndex = 3;
-			overlay.appendChild(link_2);
-		}
-
-		const span = document.createElement('span');
-		span.innerHTML = 'Click to dive<br>Press Z or pinch to toggle birdview';
-		overlay.appendChild(span);
-	}
-
-	function hideOverlay() {
-		if (overlay.classList.contains('show')) {
-			overlay.classList.remove('show');
-		}
-
-		while (overlay.firstChild){
-			overlay.removeChild(overlay.firstChild);
-		}
-	}
-
-	////////////////////////////////////////////////////////////////////////
-	//
-	// Event handler
-	//
-	////////////////////////////////////////////////////////////////////////
-
-	function eventHandler(e) {
+	const eventHandler = e => {
 		let tag;
 		let target;
 
@@ -570,15 +545,9 @@
 				}
 			}
 		}
-	}
+	};
 
-	////////////////////////////////////////////////////////////////////////
-	//
-	// Utility functions
-	//
-	////////////////////////////////////////////////////////////////////////
-
-	function extend(defaults, options) {
+	const extend = (defaults, options) => {
 		const extended = {};
 		let prop;
 
@@ -595,43 +564,9 @@
 		}
 
 		return extended;
-	}
+	};
 
-	function wrapAll(parent, wrapper_id) {
-		let element = parent;
-
-		if (element !== body) {
-			element = document.getElementById(element);
-		}
-
-		const wrapper = document.createElement('div');
-		wrapper.id = wrapper_id;
-
-		while (element.firstChild) {
-			wrapper.appendChild(element.firstChild);
-		}
-
-		element.appendChild(wrapper);
-	}
-
-	function unwrap(wrapper) {
-		const element = document.getElementById(wrapper);
-		const parent = element.parentNode;
-
-		while (element.firstChild) {
-			parent.insertBefore(element.firstChild, element);
-		}
-
-		parent.removeChild(element);
-	}
-
-	////////////////////////////////////////////////////////////////////////
-	//
-	// Initialize
-	//
-	////////////////////////////////////////////////////////////////////////
-
-	birdview.init = function (options) {
+	birdview.init = options => {
 		if (!supports) {
 			return console.log('Birdview is not supported on this browser');
 		}
@@ -665,13 +600,7 @@
 		console.log('Birdview is running');
 	};
 
-	////////////////////////////////////////////////////////////////////////
-	//
-	// Destroy
-	//
-	////////////////////////////////////////////////////////////////////////
-
-	birdview.destroy = function () {
+	birdview.destroy = () => {
 		if (!settings) {
 			return;
 		}
