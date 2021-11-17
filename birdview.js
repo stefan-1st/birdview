@@ -270,8 +270,8 @@
 
 	/**
 	 * Calculate the distance between two points via pythagorean theorem.
-	 * @param {number} a
-	 * @param {number} b
+	 * @param {Object} a
+	 * @param {Object} b
 	 * @returns {number}
 	 */
 	const distanceBetween = (a, b) => {
@@ -520,7 +520,7 @@
 			} else if (scaled) {
 				tag = target.tagName.toLowerCase();
 				// If the target is a link, navigate directly without zooming
-				if (tag === 'a' || target.parentNode.tagName.toLowerCase() === 'a') {
+				if (tag === 'a' || target?.parentNode?.tagName.toLowerCase() === 'a') {
 					return;
 
 					// Dive only if the target is not an element of the overlay
@@ -538,7 +538,7 @@
 			exitBirdview();
 		}
 
-		if (e.type === 'mousedown' && e.which === 2) {
+		if (e.type === 'mousedown' && e.button === 1) {
 			exitBirdview();
 		}
 
@@ -548,7 +548,7 @@
 				target = e.target;
 				tag = target.tagName.toLowerCase();
 
-				if (tag === 'a' || target.parentNode.tagName.toLowerCase() === 'a') {
+				if (tag === 'a' || target?.parentNode?.tagName.toLowerCase() === 'a') {
 					return;
 				} else if (tag !== 'h1' && tag !== 'a' && tag !== 'button') {
 					dive(e.touches[0].clientY);
