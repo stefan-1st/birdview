@@ -78,8 +78,8 @@
 		overlay: true,
 		overlay_transition: 0.3,
 		origin_X: 50,
-		callback_start: null,
-		callback_end: null,
+		callback_start: () => {},
+		callback_end: () => {},
 		touch: true,
 		debug: false,
 		text_h1: 'Birdview',
@@ -442,10 +442,7 @@
 		scaled = true;
 		toggleOverlay();
 		birdviewCSS();
-
-		if (settings.callback_start) {
-			settings.callback_start();
-		}
+		settings.callback_start();
 	};
 
 	const exitBirdview = () => {
@@ -456,10 +453,7 @@
 		scaled = false;
 		toggleOverlay();
 		removeBirdviewCSS();
-
-		if (settings.callback_end) {
-			settings.callback_end();
-		}
+		settings.callback_end();
 	};
 
 	birdview.toggle = () => {
@@ -475,10 +469,7 @@
 		toggleOverlay();
 		diveCSS(click_Y_position);
 		window.scrollTo(0, diveScrollPosition(click_Y_position));
-
-		if (settings.callback_end) {
-			settings.callback_end();
-		}
+		settings.callback_end();
 	};
 
 	const eventHandler = e => {
