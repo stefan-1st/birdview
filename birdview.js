@@ -90,6 +90,11 @@
 		text_zooming: 'Zooming...'
 	};
 
+	/**
+	 * Create a container for and stuff the given content.
+	 * @param {HTMLElement|String} parent
+	 * @param {String} wrapper_id
+	 */
 	const wrapAll = (parent, wrapper_id) => {
 		let element = parent;
 		const wrapper = document.createElement('div');
@@ -107,6 +112,10 @@
 		element.appendChild(wrapper);
 	};
 
+	/**
+	 * Un-stuff the original content from the wrapper and remove the container.
+	 * @param {String} wrapper
+	 */
 	const unwrap = wrapper => {
 		const element = document.getElementById(wrapper);
 		const parent = element.parentNode;
@@ -118,14 +127,21 @@
 		parent.removeChild(element);
 	};
 
-	const createButton = () => {
+	/**
+	 * Construct the birdview button and append it to the button parent.
+	 * @param {HTMLElement} button_parent
+	 */
+	const createButton = (button_parent) => {
 		const birdview_button = document.createElement('button');
 		birdview_button.innerText = settings.button_text;
 		birdview_button.id = 'birdview_auto_generated_button';
 		birdview_button.classList.add('birdview_toggle');
-		child.appendChild(birdview_button);
+		button_parent.appendChild(birdview_button);
 	};
 
+	/**
+	 * Generate the backdrop.
+	 */
 	const createOverlay = () => {
 		overlay = document.createElement('div');
 		overlay.id = 'birdview_auto_generated_overlay';
@@ -139,17 +155,15 @@
 		body.appendChild(overlay);
 	};
 
-	/*
-	*
-	* Wrap all content inside 2 containers and create the UI
-	*
-	*   <div id="birdview_parent">
-	*       <div id="birdview_child">
-	*           <!-- content -->
-	*       </div>
-	*   </div>
-	*
-	*/
+	/**
+	 * Wrap all content inside 2 containers and create the UI
+	 *
+	 *   <div id="birdview_parent">
+	 *       <div id="birdview_child">
+	 *           <!-- content -->
+	 *       </div>
+	 *   </div>
+	 */
 	const setupDOM = () => {
 		const focused = document.activeElement; // Get focused element before wrapping the document
 
@@ -160,7 +174,7 @@
 		focused.focus(); // Restore the focused element
 
 		if (settings.button) {
-			createButton();
+			createButton(child);
 		}
 
 		if (settings.overlay) {
@@ -168,6 +182,9 @@
 		}
 	};
 
+	/**
+	 * Remove the generated birdview button from the dom.
+	 */
 	const removeButton = () => {
 		const button = document.getElementById('birdview_auto_generated_button');
 
@@ -176,6 +193,9 @@
 		}
 	};
 
+	/**
+	 * Remove the generated backdrop from the dom.
+	 */
 	const removeOverlay = () => {
 		const overlay = document.getElementById('birdview_auto_generated_overlay');
 
@@ -184,6 +204,9 @@
 		}
 	};
 
+	/**
+	 * Remove all Birdview components.
+	 */
 	const restoreDOM = () => {
 		unwrap('birdview_child');
 		unwrap('birdview_parent');
@@ -193,33 +216,73 @@
 		removeOverlay();
 	};
 
+	/**
+	 * Calculate actual document and viewport heights, as well as the scaling.
+	 */
 	const updateMeasurements = () => {
 		document_height = Math.max(body.scrollHeight, body.offsetHeight, html.clientHeight, html.scrollHeight, html.offsetHeight);
 		viewport_height = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
 		scale_value = viewport_height / document_height;
 	};
 
-	// Returns the Y transform origin according to scrolling position, viewport hight and document length
+	/**
+	 * Returns the Y transform origin according to scrolling position, viewport height and document length
+	 * @returns {number}
+	 */
 	const birdviewTransformOriginY = () => css_transform_origin_Y = ((window.pageYOffset + (viewport_height * 0.5)) / document_height) * 100;
 
-	// Given a value 'x' in [a, b], output a value 'y' in [c, d]
+	/**
+	 * Given a value 'x' in [a, b], output a value 'y' in [c, d]
+	 * @param {number} x
+	 * @param {number} a
+	 * @param {number} b
+	 * @param {number} c
+	 * @param {number} d
+	 * @returns {number}
+	 */
 	const linearTransform = (x, a, b, c, d) => ((x - a) * (d - c)) / (b - a) + c;
 
+	/**
+	 * Calculate the scale correction.
+	 * @returns {number}
+	 */
 	const compensateScale = () => (linearTransform(css_transform_origin_Y, 0, 100, -1, 1)) * viewport_height * 0.5;
 
+	/**
+	 * Calculate the original transform origin click position while in birdview.
+	 * @param {number} click_Y_position
+	 * @returns {number}
+	 */
 	const diveTransformOrigin = click_Y_position => css_transform_origin_Y = ((click_Y_position / viewport_height) * 100);
 
+	/**
+	 * Calculate the original scroll from click position while in birdview.
+	 * @param {number} click_Y_position
+	 * @returns {number}
+	 */
 	const diveScrollPosition = click_Y_position => ((click_Y_position / viewport_height) * document_height) - ((click_Y_position / viewport_height) * viewport_height);
 
-	// This function works on Mobile Safari and Firefox Android. I didn't find a way to detect a zoom change on Chrome Android.
+	/**
+	 * This function works on Mobile Safari and Firefox Android. I didn't find a way to detect a zoom change on Chrome Android.
+	 * @returns {number}
+	 */
 	const getZoomLevel = () => window.screen.width / window.innerWidth;
 
+	/**
+	 * Calculate the distance between two points via pythagorean theorem.
+	 * @param {number} a
+	 * @param {number} b
+	 * @returns {number}
+	 */
 	const distanceBetween = (a, b) => {
 		const dx = a.x - b.x;
 		const dy = a.y - b.y;
 		return Math.sqrt(dx * dx + dy * dy);
 	};
 
+	/**
+	 * Assign necessary transformations to all elements that are involved in the birdview flow.
+	 */
 	const birdviewCSS = () => {
 		updateMeasurements();
 		parent.style.transition = 'transform ' + settings.speed + 's ' + settings.easing;
@@ -229,6 +292,9 @@
 		parent.style.transform = 'translateY(' + compensateScale() + 'px)';
 	};
 
+	/**
+	 * Checks if the given content already is completely visible.
+	 */
 	const pageFits = () => {
 		child.animate(
 			[
@@ -241,6 +307,10 @@
 			});
 	};
 
+	/**
+	 * Assign the styles necessary to animate the animation into the content.
+	 * @param {number} click_Y_position
+	 */
 	const diveCSS = click_Y_position => {
 		child.style.transformOrigin = settings.origin_X + '% ' + diveTransformOrigin(click_Y_position) + '%';
 		child.style.transform = 'scale(1)';
@@ -248,17 +318,26 @@
 		parent.style.transform = 'translateY(0px)';
 	};
 
+	/**
+	 * Resets styles.
+	 */
 	const removeBirdviewCSS = () => {
 		child.style.transformOrigin = settings.origin_X + '% ' + css_transform_origin_Y + '%';
 		child.style.transform = 'scale(1)';
 		parent.style.transform = 'translateY(0px)';
 	};
 
+	/**
+	 * Removes transforms from styles.
+	 */
 	const removeTransforms = () => {
 		child.style.transform = '';
 		parent.style.transform = '';
 	};
 
+	/**
+	 * Make the overlay invisible.
+	 */
 	const hideOverlay = () => {
 		if (overlay.classList.contains('show')) {
 			overlay.classList.remove('show');
@@ -269,6 +348,9 @@
 		}
 	};
 
+	/**
+	 * Add and show elements that show the "Zooming" info.
+	 */
 	const showLoading = () => {
 		overlay.classList.add('show', 'zooming');
 
@@ -281,6 +363,9 @@
 		overlay.appendChild(h1);
 	};
 
+	/**
+	 * Add all elements that make up the birdview UI.
+	 */
 	const buildMenu = () => {
 		if (overlay.classList.contains('zooming')) {
 			overlay.classList.remove('zooming');
